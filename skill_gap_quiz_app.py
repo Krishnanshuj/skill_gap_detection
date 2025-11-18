@@ -1,18 +1,16 @@
 import streamlit as st
 import pandas as pd
 import os
+from datetime import datetime
 
 st.set_page_config(page_title="Skill Gap Detection Quiz", page_icon="🧮", layout="centered")
 
 st.title("🧠 Skill Gap Detection Quiz")
 st.markdown("### Topics: Algebra, Geometry, Trigonometry")
 
-
 student_name = st.text_input("Enter your name:")
 
-
 questions = [
-    
     {"id": "Q1", "question": "Simplify: 3x + 4x", "options": ["5x", "6x", "7x", "8x"], "answer": "7x", "skill": "Algebra"},
     {"id": "Q2", "question": "Solve for x: 2x + 3 = 7", "options": ["1", "2", "3", "4"], "answer": "2", "skill": "Algebra"},
     {"id": "Q3", "question": "If y = 3x + 2, find y when x = 4", "options": ["12", "14", "16", "18"], "answer": "14", "skill": "Algebra"},
@@ -21,14 +19,12 @@ questions = [
     {"id": "Q6", "question": "Simplify: (x² + 2x + 1)", "options": ["x² + 1", "(x+1)²", "x(x+1)", "(x+1)(x+2)"], "answer": "(x+1)²", "skill": "Algebra"},
     {"id": "Q7", "question": "If 5x = 25, find x", "options": ["4", "5", "6", "7"], "answer": "5", "skill": "Algebra"},
 
-    
     {"id": "Q8", "question": "Sum of angles in a triangle?", "options": ["90°", "180°", "270°", "360°"], "answer": "180°", "skill": "Geometry"},
     {"id": "Q9", "question": "Area of a circle (r=7cm)?", "options": ["49", "154", "22", "44"], "answer": "154", "skill": "Geometry"},
     {"id": "Q10", "question": "Perimeter of rectangle (L=10,B=5)?", "options": ["20", "25", "30", "35"], "answer": "30", "skill": "Geometry"},
     {"id": "Q11", "question": "Type of triangle with sides 5, 12, 13?", "options": ["Equilateral", "Isosceles", "Scalene", "Right triangle"], "answer": "Right triangle", "skill": "Geometry"},
     {"id": "Q12", "question": "Area of square (side=6cm)?", "options": ["12", "24", "36", "48"], "answer": "36", "skill": "Geometry"},
     {"id": "Q13", "question": "Circumference of circle (r=3cm)?", "options": ["9.42", "18.84", "12.56", "21.98"], "answer": "18.84", "skill": "Geometry"},
-
 
     {"id": "Q14", "question": "sin(90°) = ?", "options": ["0", "1", "0.5", "-1"], "answer": "1", "skill": "Trigonometry"},
     {"id": "Q15", "question": "cos(0°) = ?", "options": ["0", "1", "0.5", "-1"], "answer": "1", "skill": "Trigonometry"},
@@ -41,7 +37,6 @@ questions = [
 
 responses = {}
 
-
 st.divider()
 st.subheader("📋 Questions")
 
@@ -52,7 +47,6 @@ if st.button("Submit Quiz"):
     if student_name.strip() == "":
         st.error("⚠️ Please enter your name before submitting.")
     else:
-        
         score_data = []
         correct = 0
         for q in questions:
@@ -66,7 +60,6 @@ if st.button("Submit Quiz"):
             })
             correct += is_correct
 
-        
         df = pd.DataFrame(score_data)
         csv_file = "student_responses.csv"
         if not os.path.exists(csv_file):
@@ -76,3 +69,37 @@ if st.button("Submit Quiz"):
 
         st.success(f"✅ Quiz submitted! Your score: {correct}/{len(questions)}")
         st.balloons()
+
+
+
+
+st.markdown("---")
+st.subheader("📉 Overall Weakness by Skill (Admin view)")
+
+THRESHOLD = 0.2  
+csv_file = "student_responses.csv"
+
+if os.path.exists(csv_file):
+    long = pd.read_csv(csv_file)  
+
+   
+    avg = long.groupby(["Student", "Skill"])["Correct"].mean().unstack(fill_value=0)
+
+   
+    skills = ["Algebra", "Geometry", "Trigonometry"]
+    for s in skills:
+        if s not in avg.columns:
+            avg[s] = 0.0
+    avg = avg[skills]
+
+   
+    percent_weak = ((avg < THRESHOLD).sum() / len(avg) * 100).round(1)
+
+   
+    chart_df = pd.DataFrame({"% Weak": percent_weak}).reset_index().rename(columns={"index": "Skill"}).set_index("Skill")
+
+    st.write(f"Students scoring below {int(THRESHOLD*100)}% in each skill (n = {len(avg)})")
+    st.bar_chart(chart_df)
+
+else:
+    st.info("No quiz responses yet. Once students submit, this chart will appear here.")
